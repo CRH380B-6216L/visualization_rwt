@@ -15,14 +15,23 @@ var goal_joint_states;
 var start_im_client;
 var goal_im_client;
 var tfClient;
+var startState;
+var goalState;
+
+function sleep(ms) {
+    ms += new Date().getTime();
+    while (new Date() < ms){}
+} 
 
 function init() {
     // Connect to ROS.
+    console.log('Connect to ROS.');
     var url = 'ws://' + location.hostname + ':9090';
 
     var real_ros = new ROSLIB.Ros({
         url : url
     });
+
     var virtual_ros = new ROSLIB.Ros({
         url : url
     });
@@ -109,8 +118,8 @@ function init() {
         messageType: 'std_msgs/Float64MultiArray'
     });
 
-
     // Create the main viewer.
+    console.log('Create the main viewer.');
     var width = parseInt($("#main-content").css("width"));
     var height = Math.max(
         $(document).height(),
@@ -127,8 +136,8 @@ function init() {
     });
 
     // Add a grid.
+    console.log('Add a grid.');
     viewer.addObject(new ROS3D.Grid());
-
 
     fixed_frame_param = new ROSLIB.Param({
         ros: real_ros,
@@ -146,6 +155,7 @@ function init() {
     });
 
     // Setup listener
+    console.log('Setup listener');
     var joint_listener = new ROSLIB.Topic({
         ros : virtual_ros,
         name : '/joint_states',
@@ -163,7 +173,6 @@ function init() {
         name : '/start_joint_states',
         messageType : 'sensor_msgs/JointState'
     });
-
 
     // Setup a client to listen to TFs.
     fixed_frame_param.get(function(value) {
@@ -233,7 +242,7 @@ function init() {
                 var fk_link_name;
 
                 if (end_effector_link[current_group] == null) {
-                    fk_link_name = "Flange";
+                    fk_link_name = "tool0";
                 }
                 else {
                     fk_link_name = end_effector_link[current_group];
@@ -305,7 +314,7 @@ function init() {
                 var fk_link_name;
 
                 if (end_effector_link[current_group] == null) {
-                    fk_link_name = "Flange";
+                    fk_link_name = "tool0";
                 }
                 else {
                     fk_link_name = end_effector_link[current_group];
@@ -366,42 +375,42 @@ function init() {
                         }
                     }
                 }
-
-
-                                              
-
             });
 
             create_joint_position_msg(1, true);
         }, 3000);
 
+        //sleep(3000);
         setTimeout(function() {
             // Setup the URDF client.
-            var goalState = new ROS3D.UrdfClient({
+            goalState = new ROS3D.UrdfClient({
                 ros : virtual_ros,
                 tfPrefix : 'goal',
                 color : 0xff3000,
                 tfClient : tfClient,
                 hidden : true,
                 param : 'robot_description',
-                rootObject : viewer.scene
+                rootObject : viewer.scene,
+                loader : ROS3D.COLLADA_LOADER
             });
 
             var urdfClient = new ROS3D.UrdfClient({
                 ros : real_ros,
                 tfClient : tfClient,
                 param : 'robot_description',
-                rootObject : viewer.scene
+                rootObject : viewer.scene,
+                loader : ROS3D.COLLADA_LOADER
             });
 
-            var startState = new ROS3D.UrdfClient({
+            startState = new ROS3D.UrdfClient({
                 ros : joint_ros,
                 tfPrefix : 'start',
                 color : 0x00df00,
                 tfClient : tfClient,
                 hidden : true,
                 param : 'robot_description',
-                rootObject : viewer.scene
+                rootObject : viewer.scene,
+                loader : ROS3D.COLLADA_LOADER
             });
 
             $('#start_state').change(function() {
@@ -447,6 +456,7 @@ function init() {
         }, 1500);
     });
 
+    //sleep(1500);
     end_effector_link_param.get(function(value) {
         end_effector_link = value;
     });
@@ -568,6 +578,8 @@ function init() {
 
 function create_joint_position_msg(type, plan_only) {
 
+    console.log('create_joint_position_msg');
+
     positions = new Array();
     start_positions = new Array();
     goal_positions = new Array();
@@ -628,6 +640,7 @@ function create_joint_position_msg(type, plan_only) {
 }
 
 function callback() {
+    console.log('callback');
     var msg = create_joint_position_msg(1, true);
     if($('input[name="manip"]:checked').val() == 0) {
         start_pub.publish(msg);
@@ -638,6 +651,7 @@ function callback() {
 }
 
 function joint_publish() {
+    console.log('joint_publish');
     if(message_stock.length == 0) {
         clearInterval(timer);
     }
@@ -648,6 +662,7 @@ function joint_publish() {
 
 // create joint_publisher
 function createSliderView() {
+    console.log('createSliderView');
     var i = 0;
     for (group_name in link_group) {
         $("#slider-pane").append('<div id="' + group_name + '"/>');
@@ -672,7 +687,7 @@ function createSliderView() {
                 }
             }
         }
-        $.getScript("js/jquery-mobile/jquery.mobile-1.3.2.min.js");
+        $.getScript("rwt_moveit/js/jquery-mobile/jquery.mobile-1.3.2.min.js");
         var msg = new ROSLIB.Message({
             data: current_group
         });
@@ -682,6 +697,7 @@ function createSliderView() {
 }
 
 function im_size_callback() {
+    console.log('im_size_callback');
     var size = parseFloat($("#im-size").val());
     var msg = new ROSLIB.Message({
         data: size

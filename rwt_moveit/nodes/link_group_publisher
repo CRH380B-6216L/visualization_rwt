@@ -19,16 +19,28 @@ def set_param(name, value):
 
 
 def set_param():
-    description = get_param('robot_description_semantic')
-    group_description = xml.dom.minidom.parseString(description).getElementsByTagName('group')
-    effector_description = xml.dom.minidom.parseString(description).getElementsByTagName('end_effector')
+    semantic_description = get_param('robot_description_semantic')
+    description = get_param('robot_description')
+    effector_description = xml.dom.minidom.parseString(semantic_description).getElementsByTagName('end_effector')
+    group_description = xml.dom.minidom.parseString(semantic_description).getElementsByTagName('group')
     for group_name in group_description:
-        links = []
         name = group_name.getAttribute('name')
+        links = []
         for child in group_name.childNodes:
-            if child.nodeType is child.TEXT_NODE:
-                continue
-            links.append(child.getAttribute('name'))
+            if child.nodeName != "chain":
+                for child in group_name.childNodes:
+                    if child.nodeType is child.TEXT_NODE:
+                        continue
+                    links.append(child.getAttribute('name'))
+            else:
+                joints_description = xml.dom.minidom.parseString(description).getElementsByTagName('joint')
+                for joint_name in joints_description:
+                    if (joint_name.getAttribute('type') != "fixed"):
+                        links.append(joint_name.getAttribute('name'))
+                    else:
+                        pass
+        del links[0]
+        del links[-1]
         rospy.set_param('~' + name, links)
     for effector_name in effector_description:
         if effector_name.nodeType is effector_name.TEXT_NODE:
